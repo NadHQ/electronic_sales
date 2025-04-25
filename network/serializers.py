@@ -14,3 +14,9 @@ class NetworkNodeSerializer(serializers.ModelSerializer):
         model = NetworkNode
         exclude = ["debt"]
         read_only_fields = ["created_at"]
+
+
+class NetworkNodeDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NetworkNode
+        fields = "__all__"

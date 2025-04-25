@@ -12,6 +12,11 @@ services:
     ports:
       - "5432:5432"
 
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
   web:
     build: .
     command: python manage.py runserver 0.0.0.0:8000
@@ -21,8 +26,43 @@ services:
       - "8000:8000"
     depends_on:
       - db
+      - redis
     environment:
       - DJANGO_SETTINGS_MODULE=electronic_sales.settings
+      - CELERY_BROKER_URL=redis://redis:6379/0
+
+  celery:
+    build: .
+    command: celery -A electronic_sales worker --loglevel=info
+    volumes:
+      - .:/code
+    depends_on:
+      - web
+      - redis
+    environment:
+      - DJANGO_SETTINGS_MODULE=electronic_sales.settings
+
+  celery-beat:
+    build: .
+    command: celery -A electronic_sales beat --loglevel=info
+    volumes:
+      - .:/code
+    depends_on:
+      - web
+      - redis
+    environment:
+      - DJANGO_SETTINGS_MODULE=electronic_sales.settings
+      
+
+  flower:
+    image: mher/flower
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+      - celery
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
 
 volumes:
   pgdata:

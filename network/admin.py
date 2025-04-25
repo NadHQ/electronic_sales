@@ -25,7 +25,7 @@ class NetworkNodeAdmin(admin.ModelAdmin):
         "get_city",
     ]
     list_filter = ["node_type", "address__city"]
-    search_fields = ["name", "email", "address__city"]
+    search_fields = ["address__city"]
 
     actions = [clear_debt]
 
