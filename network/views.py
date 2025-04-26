@@ -10,8 +10,13 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from network.models import NetworkNode
-from network.serializers import NetworkNodeDetailSerializer, NetworkNodeSerializer
-from network.swagger.parameters import filter_by_country_name, filter_by_product_id
+from network.serializers import (
+    NetworkNodeDetailSerializer,
+    NetworkNodeSerializer,
+    SendEmailSerializer,
+)
+from network.swagger.parameters import country_param, product_id_param
+from network.tasks import send_qr_code_email
 from users.permisions import IsActiveUserPermission
 
 
@@ -30,7 +35,7 @@ class NetworkNodeViewSet(viewsets.ModelViewSet):
         return queryset
 
     @swagger_auto_schema(
-        manual_parameters=[filter_by_country_name],
+        manual_parameters=[country_param],
         operation_description="Get list of nodes filtered by country name",
         responses={200: NetworkNodeDetailSerializer(many=True)},
     )
@@ -58,7 +63,7 @@ class NetworkNodeViewSet(viewsets.ModelViewSet):
         return Response(serializers.data)
 
     @swagger_auto_schema(
-        manual_parameters=[filter_by_product_id],
+        manual_parameters=[product_id_param],
         operation_description="Filter by product id",
         responses={200: NetworkNodeDetailSerializer(many=True)},
     )
@@ -77,3 +82,21 @@ class NetworkNodeViewSet(viewsets.ModelViewSet):
         nodes = NetworkNode.objects.filter(products__id=product_id)
         serializers = self.get_serializer(nodes, many=True)
         return Response(serializers.data)
+
+    @swagger_auto_schema(
+        operation_description="Send QR code to email", request_body=SendEmailSerializer
+    )
+    @action(
+        methods=["post"],
+        detail=False,
+    )
+    def send_qr_code(self, request: HttpRequest):
+        serializer = SendEmailSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        target_id = serializer.validated_data["node_id"]
+        target_email = serializer.validated_data["target_email"]
+
+        send_qr_code_email.delay(target_id, target_email)
+
+        return Response({"message": "QR code sent successfully"})

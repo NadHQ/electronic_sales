@@ -20,3 +20,8 @@ class NetworkNodeDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = NetworkNode
         fields = "__all__"
+
+
+class SendEmailSerializer(serializers.Serializer):
+    node_id = serializers.IntegerField()
+    target_email = serializers.EmailField()
